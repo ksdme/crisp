@@ -1,22 +1,30 @@
-use crate::machine::registers::Register;
+use thiserror::Error;
 
-pub struct Machine {
-    pc: Register,
+use crate::machine::{
+    instructions::{self, decode},
+    state,
+};
 
-    // The general purpose 32 bit registers. All the registers are treated equal
-    // on the machine level. The compiler is responsible for assigning special
-    // meaning.
-    registers: [Register; 32],
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error(transparent)]
+    State(#[from] state::Error),
+
+    #[error(transparent)]
+    Decode(#[from] decode::Error),
 }
 
-impl Machine {
-    pub fn new() -> Self {
-        let mut registers = [Register::new(0, true); 32];
-        registers[0] = Register::new(0, false); // x0 is hardwired to 0.
+pub struct Machine<const M: usize> {
+    pub state: state::State<M>,
+}
 
-        return Machine {
-            pc: Register::new(0, true),
-            registers,
-        };
+impl<const M: usize> Machine<M> {
+    pub fn new(state: state::State<M>) -> Self {
+        Machine { state }
+    }
+
+    pub fn fetch_decode(&self) -> Result<instructions::Inst, Error> {
+        let inst = self.state.get_mem_u32(self.state.get_pc())?;
+        Ok(instructions::decode(inst)?)
     }
 }

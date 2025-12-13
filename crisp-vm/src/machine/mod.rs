@@ -1,4 +1,5 @@
+mod instructions;
 mod machine;
-pub mod registers;
+pub mod state;
 
-pub use machine::Machine;
+pub use machine::{Error, Machine};
