@@ -2,6 +2,10 @@ use crate::machine::registers::Register;
 
 pub struct Machine {
     pc: Register,
+
+    // The general purpose 32 bit registers. All the registers are treated equal
+    // on the machine level. The compiler is responsible for assigning special
+    // meaning.
     registers: [Register; 32],
 }
 
