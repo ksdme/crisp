@@ -8,6 +8,7 @@ pub enum Error {
     UnknownInst,
 }
 
+// TODO: Both 0 and u32::MAX are illegal instructions.
 pub fn decode(inst: u32) -> Result<Inst, Error> {
     match inst & 0b1_111_111 {
         // R instructions.
@@ -19,8 +20,8 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             let f7 = select(inst, 25, 7) as u8;
 
             match (f3, f7) {
-                (0, 0) => Ok(Inst::Add { rd, rs1, rs2 }),
-                (0, 0b100_000) => Ok(Inst::Sub { rd, rs1, rs2 }),
+                (0, 0) => Ok(Inst::ADD { rd, rs1, rs2 }),
+                (0, 0b100_000) => Ok(Inst::SUB { rd, rs1, rs2 }),
                 _ => Err(Error::UnknownInst),
             }
         }
@@ -33,11 +34,25 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             let imm = select(inst, 20, 12) as u16;
 
             match f3 {
-                0 => Ok(Inst::AddI { rd, rs1, imm }),
-                0b010 => Ok(Inst::LoadWord { rd, rs1, imm }),
+                0 => Ok(Inst::ADDI { rd, rs1, imm }),
+                0b010 => Ok(Inst::LW { rd, rs1, imm }),
                 _ => Err(Error::UnknownInst),
             }
         }
+
+        // S instructions.
+        0b0_100_011 => {
+            let imm = (((inst >> 25) << 5) | ((inst >> 7) & 0b11_111)) as u16;
+            let f3 = select(inst, 12, 3) as u8;
+            let rs1 = select(inst, 15, 5) as u8;
+            let rs2 = select(inst, 20, 5) as u8;
+
+            match f3 {
+                0b010 => Ok(Inst::SW { rs1, rs2, imm }),
+                _ => Err(Error::UnknownInst),
+            }
+        }
+
         _ => Err(Error::UnknownInst),
     }
 }
