@@ -27,13 +27,14 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
 
         // I instructions.
         0b0_010_011 => {
-            let rd = select(inst, 6, 5) as u8;
-            let f3 = select(inst, 11, 3) as u8;
-            let rs1 = select(inst, 14, 5) as u8;
-            let imm = select(inst, 19, 12) as u16;
+            let rd = select(inst, 7, 5) as u8;
+            let f3 = select(inst, 12, 3) as u8;
+            let rs1 = select(inst, 15, 5) as u8;
+            let imm = select(inst, 20, 12) as u16;
 
             match f3 {
                 0 => Ok(Inst::AddI { rd, rs1, imm }),
+                0b010 => Ok(Inst::LoadWord { rd, rs1, imm }),
                 _ => Err(Error::UnknownInst),
             }
         }
