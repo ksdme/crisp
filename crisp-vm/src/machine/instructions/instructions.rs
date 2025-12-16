@@ -94,13 +94,33 @@ pub enum Inst {
     // Stores the 4 bytes from rs2 in memory starting at rs1 + sign extended imm.
     SW { rs1: u8, rs2: u8, imm: u16 },
 
+    // I - Add Immediate
+    // Add sign-extended 12-bit immediate to rs1, and store the result in rd.
+    ADDI { rd: u8, rs1: u8, imm: u16 },
+
+    // I - Set Less Than Immediate
+    // Set 1 to rd if rs1 < sign extended imm with signed comparison.
+    SLTI { rd: u8, rs1: u8, imm: u16 },
+
+    // I - Set Less Than Immediate Unsigned
+    // Set 1 to rd if rs1 < sign extended imm with unsigned comparison.
+    SLTIU { rd: u8, rs1: u8, imm: u16 },
+
+    // I - XOR Immediate
+    // Stores the value of bitwise XOR of rs1 and sign extended imm in rd.
+    XORI { rd: u8, rs1: u8, imm: u16 },
+
+    // I - OR Immediate
+    // Stores the value of bitwise OR of rs1 and sign extended imm in rd.
+    ORI { rd: u8, rs1: u8, imm: u16 },
+
+    // I - AND Immediate
+    // Stores the value of bitwise AND of rs1 and sign extended imm in rd.
+    ANDI { rd: u8, rs1: u8, imm: u16 },
+
     // R - Add
     // Add rs2 to register rs1, and store the result in register rd.
     ADD { rd: u8, rs1: u8, rs2: u8 },
-
-    // I - Add Immediate
-    // Add sign-extended 12-bit immediate to register rs1, and store the result in register rd.
-    ADDI { rd: u8, rs1: u8, imm: u16 },
 
     // R - Subtract
     // Subtract rs2 from register rs1, and store the result in register rd.
@@ -175,27 +195,11 @@ impl Inst {
 
             Inst::BNE { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| a != b),
 
-            Inst::BLT { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| {
-                // Even in case of negative numbers, the two's complement of a smaller number
-                // will still be smaller than the other number.
-                if (a >> 31) == (b >> 31) {
-                    a < b
-                } else {
-                    (a >> 31) == 1
-                }
-            }),
+            Inst::BLT { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| signed_cmp_lt(a, b)),
 
             Inst::BLTU { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| a < b),
 
-            Inst::BGE { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| {
-                // Even in case of negative numbers, the two's complement of a smaller number
-                // will still be smaller than the other number.
-                if (a >> 31) == (b >> 31) {
-                    !(a < b)
-                } else {
-                    (a >> 31) == 0
-                }
-            }),
+            Inst::BGE { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| signed_cmp_gt(a, b)),
 
             Inst::BGEU { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| !(a < b)),
 
@@ -260,14 +264,51 @@ impl Inst {
                 Ok(None)
             }
 
-            Inst::ADD { rd, rs1, rs2 } => {
-                state.set_r(rd, add!(state.get_r(rs1)?, state.get_r(rs2)?))?;
+            // Logical and arithematic operations
+            Inst::ADDI { rd, rs1, imm } => {
+                let val = add!(state.get_r(rs1)?, sign_extend!(12, imm));
+                state.set_r(rd, val)?;
 
                 Ok(None)
             }
 
-            Inst::ADDI { rd, rs1, imm } => {
-                state.set_r(rd, add!(state.get_r(rs1)?, sign_extend!(12, imm)))?;
+            Inst::SLTI { rd, rs1, imm } => {
+                let lt = signed_cmp_lt(state.get_r(rs1)?, sign_extend!(12, imm));
+                state.set_r(rd, if lt { 1 } else { 0 })?;
+
+                Ok(None)
+            }
+
+            Inst::SLTIU { rd, rs1, imm } => {
+                let lt = state.get_r(rs1)? < sign_extend!(12, imm);
+                state.set_r(rd, if lt { 1 } else { 0 })?;
+
+                Ok(None)
+            }
+
+            Inst::XORI { rd, rs1, imm } => {
+                let val = state.get_r(rs1)? ^ sign_extend!(12, imm);
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::ORI { rd, rs1, imm } => {
+                let val = state.get_r(rs1)? | sign_extend!(12, imm);
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::ANDI { rd, rs1, imm } => {
+                let val = state.get_r(rs1)? & sign_extend!(12, imm);
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::ADD { rd, rs1, rs2 } => {
+                state.set_r(rd, add!(state.get_r(rs1)?, state.get_r(rs2)?))?;
 
                 Ok(None)
             }
@@ -295,5 +336,27 @@ fn branch<const M: usize, C: Fn(u32, u32) -> bool>(
         Ok(Some(addr))
     } else {
         Ok(None)
+    }
+}
+
+// Even in case of negative numbers, the two's complement of a smaller number
+// will still be smaller than the other number.
+#[inline]
+fn signed_cmp_lt(a: u32, b: u32) -> bool {
+    if (a >> 31) == (b >> 31) {
+        a < b
+    } else {
+        (a >> 31) == 1
+    }
+}
+
+// Even in case of negative numbers, the two's complement of a smaller number
+// will still be smaller than the other number.
+#[inline]
+fn signed_cmp_gt(a: u32, b: u32) -> bool {
+    if (a >> 31) == (b >> 31) {
+        !(a < b)
+    } else {
+        (a >> 31) == 0
     }
 }

@@ -97,6 +97,21 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             }
         }
 
+        // I instructions.
+        0b0_010_011 => {
+            let (rd, f3, rs1, imm) = unpack_i(inst);
+
+            match f3 {
+                0 => Ok(Inst::ADDI { rd, rs1, imm }),
+                0b010 => Ok(Inst::SLTI { rd, rs1, imm }),
+                0b011 => Ok(Inst::SLTIU { rd, rs1, imm }),
+                0b100 => Ok(Inst::XORI { rd, rs1, imm }),
+                0b110 => Ok(Inst::ORI { rd, rs1, imm }),
+                0b111 => Ok(Inst::ANDI { rd, rs1, imm }),
+                _ => Err(Error::UnknownInst),
+            }
+        }
+
         // R instructions.
         0b0_110_011 => {
             let rd = select(inst, 7, 5) as u8;
@@ -108,15 +123,6 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             match (f3, f7) {
                 (0, 0) => Ok(Inst::ADD { rd, rs1, rs2 }),
                 (0, 0b100_000) => Ok(Inst::SUB { rd, rs1, rs2 }),
-                _ => Err(Error::UnknownInst),
-            }
-        }
-
-        0b0_010_011 => {
-            let (rd, f3, rs1, imm) = unpack_i(inst);
-
-            match f3 {
-                0 => Ok(Inst::ADDI { rd, rs1, imm }),
                 _ => Err(Error::UnknownInst),
             }
         }
