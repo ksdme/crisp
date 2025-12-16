@@ -82,6 +82,21 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             }
         }
 
+        // S instructions.
+        0b0_100_011 => {
+            let imm = (((inst >> 25) << 5) | ((inst >> 7) & 0b11_111)) as u16;
+            let f3 = select(inst, 12, 3) as u8;
+            let rs1 = select(inst, 15, 5) as u8;
+            let rs2 = select(inst, 20, 5) as u8;
+
+            match f3 {
+                0 => Ok(Inst::SB { rs1, rs2, imm }),
+                1 => Ok(Inst::SH { rs1, rs2, imm }),
+                0b010 => Ok(Inst::SW { rs1, rs2, imm }),
+                _ => Err(Error::UnknownInst),
+            }
+        }
+
         // R instructions.
         0b0_110_011 => {
             let rd = select(inst, 7, 5) as u8;
@@ -102,19 +117,6 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
 
             match f3 {
                 0 => Ok(Inst::ADDI { rd, rs1, imm }),
-                _ => Err(Error::UnknownInst),
-            }
-        }
-
-        // S instructions.
-        0b0_100_011 => {
-            let imm = (((inst >> 25) << 5) | ((inst >> 7) & 0b11_111)) as u16;
-            let f3 = select(inst, 12, 3) as u8;
-            let rs1 = select(inst, 15, 5) as u8;
-            let rs2 = select(inst, 20, 5) as u8;
-
-            match f3 {
-                0b010 => Ok(Inst::SW { rs1, rs2, imm }),
                 _ => Err(Error::UnknownInst),
             }
         }

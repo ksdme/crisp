@@ -98,16 +98,34 @@ impl<const M: usize> State<M> {
         ]))
     }
 
+    // TODO: Check for bounds.
+    pub fn set_mem_u8(&mut self, addr: u32, val: u8) -> Result<(), Error> {
+        self.memory[addr as usize] = val;
+        Ok(())
+    }
+
+    // Set a 2 byte value in memory starting at the base address with little
+    // endian-ness.
+    // TODO: Check for bounds.
+    pub fn set_mem_u16(&mut self, base_addr: u32, val: u16) -> Result<(), Error> {
+        let [a, b] = val.to_le_bytes();
+
+        self.set_mem_u8(base_addr, a)?;
+        self.set_mem_u8(base_addr + 1, b)?;
+
+        Ok(())
+    }
+
     // Set a 4 byte value in memory starting at the base address with little
     // endian-ness.
     // TODO: Check for bounds.
     pub fn set_mem_u32(&mut self, base_addr: u32, val: u32) -> Result<(), Error> {
-        let addr = base_addr as usize;
+        let [a, b, c, d] = val.to_le_bytes();
 
-        if let Some(slice) = self.memory.get_mut(addr..addr + 4) {
-            let mut byts = val.to_le_bytes();
-            slice.swap_with_slice(&mut byts);
-        }
+        self.set_mem_u8(base_addr, a)?;
+        self.set_mem_u8(base_addr + 1, b)?;
+        self.set_mem_u8(base_addr + 2, c)?;
+        self.set_mem_u8(base_addr + 3, d)?;
 
         Ok(())
     }

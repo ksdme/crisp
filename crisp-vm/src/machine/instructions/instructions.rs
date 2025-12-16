@@ -63,12 +63,12 @@ pub enum Inst {
 
     // I - Load Half-word
     // Loads half word (2 bytes) starting at the address rs1 + sign extended imm, sign extends it
-    // and stores it in rd. Assumes little endian.
+    // and stores it in rd. Uses little endian.
     LH { rs1: u8, rd: u8, imm: u16 },
 
     // I - Load Word
     // Loads 4 byte value from memory starting at rs1 + sign extended imm, then, stores it in rd.
-    // Assumes little endian.
+    // Uses little endian.
     LW { rd: u8, rs1: u8, imm: u16 },
 
     // I - Load Byte Unsigned
@@ -81,6 +81,19 @@ pub enum Inst {
     // before storing it in rd.
     LHU { rd: u8, rs1: u8, imm: u16 },
 
+    // S - Store Byte
+    // Stores the lower byte from rs2 in memory at rs1 + sign extended imm.
+    SB { rs1: u8, rs2: u8, imm: u16 },
+
+    // S - Store Half-word
+    // Stores the lower 2 bytes from rs2 in memory starting at rs1 + sign extended imm.
+    // Uses little endian.
+    SH { rs1: u8, rs2: u8, imm: u16 },
+
+    // S - Store Half-word
+    // Stores the 4 bytes from rs2 in memory starting at rs1 + sign extended imm.
+    SW { rs1: u8, rs2: u8, imm: u16 },
+
     // R - Add
     // Add rs2 to register rs1, and store the result in register rd.
     ADD { rd: u8, rs1: u8, rs2: u8 },
@@ -92,11 +105,6 @@ pub enum Inst {
     // R - Subtract
     // Subtract rs2 from register rs1, and store the result in register rd.
     SUB { rd: u8, rs1: u8, rs2: u8 },
-
-    // S - Store Word
-    // Stores a 32-bit value from register rs2 to memory, the effective address is obtained by adding
-    // register rs1 to the sign-extended 12-bit offset imm.
-    SW { rs1: u8, rs2: u8, imm: u16 },
 }
 
 #[derive(Debug, Error)]
@@ -128,6 +136,7 @@ impl Inst {
     // PC. If None was passed, it is expected that the machine increments to the next instruction.
     pub fn execute<const M: usize>(self, state: &mut State<M>) -> Result<Option<u32>, InstError> {
         match self {
+            // Upper immediates.
             Inst::LUI { rd, imm } => {
                 state.set_r(rd, imm)?;
 
@@ -141,6 +150,7 @@ impl Inst {
                 Ok(None)
             }
 
+            // Jumps.
             // TODO: Check for alignment and throw exception.
             Inst::JAL { rd, imm } => {
                 let current_pc = state.get_pc();
@@ -160,6 +170,7 @@ impl Inst {
                 Ok(Some(addr))
             }
 
+            // Branches.
             Inst::BEQ { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| a == b),
 
             Inst::BNE { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| a != b),
@@ -188,6 +199,7 @@ impl Inst {
 
             Inst::BGEU { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| !(a < b)),
 
+            // Loads
             Inst::LB { rs1, rd, imm } => {
                 let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 let val = state.get_mem_u8(addr)?;
@@ -226,6 +238,28 @@ impl Inst {
                 Ok(None)
             }
 
+            // Stores
+            Inst::SB { rs1, rs2, imm } => {
+                let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
+                state.set_mem_u8(addr, state.get_r(rs2)? as u8)?;
+
+                Ok(None)
+            }
+
+            Inst::SH { rs1, rs2, imm } => {
+                let base_addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
+                state.set_mem_u16(base_addr, state.get_r(rs2)? as u16)?;
+
+                Ok(None)
+            }
+
+            Inst::SW { rs1, rs2, imm } => {
+                let base_addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
+                state.set_mem_u32(base_addr, state.get_r(rs2)?)?;
+
+                Ok(None)
+            }
+
             Inst::ADD { rd, rs1, rs2 } => {
                 state.set_r(rd, add!(state.get_r(rs1)?, state.get_r(rs2)?))?;
 
@@ -240,18 +274,6 @@ impl Inst {
 
             Inst::SUB { rd, rs1, rs2 } => {
                 todo!();
-            }
-
-            Inst::SW { rs1, rs2, imm } => {
-                // Stores *rs2 at rs1 + imm.
-                let a = state.get_r(rs1)?;
-                let b = sign_extend!(12, imm);
-                let addr = add!(a, b);
-
-                let val = state.get_r(rs2)?;
-                state.set_mem_u32(addr, val)?;
-
-                Ok(None)
             }
         }
     }
