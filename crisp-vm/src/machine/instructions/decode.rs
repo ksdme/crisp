@@ -74,6 +74,11 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
 
             match f3 {
                 0 => Ok(Inst::BEQ { rs1, rs2, imm }),
+                1 => Ok(Inst::BNE { rs1, rs2, imm }),
+                0b100 => Ok(Inst::BLT { rs1, rs2, imm }),
+                0b101 => Ok(Inst::BGE { rs1, rs2, imm }),
+                0b110 => Ok(Inst::BLTU { rs1, rs2, imm }),
+                0b111 => Ok(Inst::BGEU { rs1, rs2, imm }),
                 _ => Err(Error::UnknownInst),
             }
         }

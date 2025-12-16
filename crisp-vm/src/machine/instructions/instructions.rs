@@ -28,9 +28,34 @@ pub enum Inst {
     JALR { rd: u8, rs1: u8, imm: u16 },
 
     // B - Branch if Equal
-    // Takes the branch (pc + sign extended imm) if *rs1 and *rs2 are equal. The imm is also
-    // shifted to have the lsb as 0 (because of the assumed alignment).
+    // Takes the branch (pc + sign extended imm) if the registers rs1 and rs2 are equal.
+    // The imm is shifted to have an implicit LSB making the imm 13 bits long (to account for the alignment).
     BEQ { rs1: u8, rs2: u8, imm: u16 },
+
+    // B - Branch Not Equal
+    // Takes the branch (pc + sign extended imm) if the registers rs1 and rs2 are not equal.
+    // The imm is shifted to have an implicit LSB making the imm 13 bits long (to account for the alignment).
+    BNE { rs1: u8, rs2: u8, imm: u16 },
+
+    // B - Branch Less Than
+    // Takes the branch (pc + sign extended imm) if the registers rs1 < rs2 on signed comparison.
+    // The imm is shifted to have an implicit LSB making the imm 13 bits long (to account for the alignment).
+    BLT { rs1: u8, rs2: u8, imm: u16 },
+
+    // B - Branch Less Than Unsigned
+    // Takes the branch (pc + sign extended imm) if the registers rs1 < rs2 on unsigned comparison.
+    // The imm is shifted to have an implicit LSB making the imm 13 bits long (to account for the alignment).
+    BLTU { rs1: u8, rs2: u8, imm: u16 },
+
+    // B - Branch Greater Than
+    // Takes the branch (pc + sign extended imm) if the registers rs1 >= rs2 on signed comparison.
+    // The imm is shifted to have an implicit LSB making the imm 13 bits long (to account for the alignment).
+    BGE { rs1: u8, rs2: u8, imm: u16 },
+
+    // B - Branch Greater Than Unsigned
+    // Takes the branch (pc + sign extended imm) if the registers rs1 >= rs2 on unsigned comparison.
+    // The imm is shifted to have an implicit LSB making the imm 13 bits long (to account for the alignment).
+    BGEU { rs1: u8, rs2: u8, imm: u16 },
 
     // R - Add
     // Add rs2 to register rs1, and store the result in register rd.
@@ -102,19 +127,33 @@ impl Inst {
                 Ok(Some(addr))
             }
 
-            // TODO: Check for alignment of the jump address if the branch will be taken.
-            // It needs to be on a 4 byte boundary.
-            Inst::BEQ { rs1, rs2, imm } => {
-                let a = state.get_r(rs1)?;
-                let b = state.get_r(rs2)?;
-                if a == b {
-                    let offset = sign_extend_13(imm);
-                    let addr = add(state.get_pc(), offset);
-                    Ok(Some(addr))
+            Inst::BEQ { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| a == b),
+
+            Inst::BNE { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| a != b),
+
+            Inst::BLT { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| {
+                // Even in case of negative numbers, the two's complement of a smaller number
+                // will still be smaller than the other number.
+                if (a >> 31) == (b >> 31) {
+                    a < b
                 } else {
-                    Ok(None)
+                    (a >> 31) == 1
                 }
-            }
+            }),
+
+            Inst::BLTU { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| a < b),
+
+            Inst::BGE { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| {
+                // Even in case of negative numbers, the two's complement of a smaller number
+                // will still be smaller than the other number.
+                if (a >> 31) == (b >> 31) {
+                    !(a < b)
+                } else {
+                    (a >> 31) == 0
+                }
+            }),
+
+            Inst::BGEU { rs1, rs2, imm } => branch(state, rs1, rs2, imm, |a, b| !(a < b)),
 
             Inst::ADD { rd, rs1, rs2 } => {
                 let a = state.get_r(rs1)?;
@@ -158,6 +197,26 @@ impl Inst {
                 Ok(None)
             }
         }
+    }
+}
+
+// TODO: Check for alignment of the jump address if the branch will be taken.
+// It needs to be on a 4 byte boundary.
+fn branch<const M: usize, C: Fn(u32, u32) -> bool>(
+    state: &State<M>,
+    rs1: u8,
+    rs2: u8,
+    imm: u16,
+    cmp: C,
+) -> Result<Option<u32>, InstError> {
+    let a = state.get_r(rs1)?;
+    let b = state.get_r(rs2)?;
+    if cmp(a, b) {
+        let offset = sign_extend_13(imm);
+        let addr = add(state.get_pc(), offset);
+        Ok(Some(addr))
+    } else {
+        Ok(None)
     }
 }
 
