@@ -118,6 +118,19 @@ pub enum Inst {
     // Stores the value of bitwise AND of rs1 and sign extended imm in rd.
     ANDI { rd: u8, rs1: u8, imm: u16 },
 
+    // I - Shift Left Logical Immediate
+    // Shifts the value in rs1 left by shamt and stores the value in rd.
+    SLLI { rd: u8, rs1: u8, shamt: u8 },
+
+    // I - Shift Right Logical Immediate
+    // Shifts the value in rs1 right by shamt and stores the value in rd.
+    SRLI { rd: u8, rs1: u8, shamt: u8 },
+
+    // I - Shift Right Arithmetic Immediate
+    // Right shifts the value of rs1 by shamt while retaining the sign bit and
+    // stores that value in rd.
+    SRAI { rd: u8, rs1: u8, shamt: u8 },
+
     // R - Add
     // Add rs2 to register rs1, and store the result in register rd.
     ADD { rd: u8, rs1: u8, rs2: u8 },
@@ -302,6 +315,37 @@ impl Inst {
 
             Inst::ANDI { rd, rs1, imm } => {
                 let val = state.get_r(rs1)? & sign_extend!(12, imm);
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            // Shifts
+            Inst::SLLI { rd, rs1, shamt } => {
+                let val = state.get_r(rs1)? << shamt;
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::SRLI { rd, rs1, shamt } => {
+                let val = state.get_r(rs1)? >> shamt;
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::SRAI { rd, rs1, shamt } => {
+                let a = state.get_r(rs1)?;
+
+                // TODO: I bet this can be optimized more.
+                // If the number is negative, we need to shift 1s into the shifted cells
+                // instead of 0s.
+                let val = if ((a >> 31) == 1) && (shamt > 0) {
+                    (a >> shamt) | (u32::MAX << (32 - (shamt % 32)))
+                } else {
+                    a >> shamt
+                };
                 state.set_r(rd, val)?;
 
                 Ok(None)

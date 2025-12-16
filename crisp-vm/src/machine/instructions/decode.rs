@@ -102,12 +102,28 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             let (rd, f3, rs1, imm) = unpack_i(inst);
 
             match f3 {
+                // Arithmatic
                 0 => Ok(Inst::ADDI { rd, rs1, imm }),
                 0b010 => Ok(Inst::SLTI { rd, rs1, imm }),
                 0b011 => Ok(Inst::SLTIU { rd, rs1, imm }),
                 0b100 => Ok(Inst::XORI { rd, rs1, imm }),
                 0b110 => Ok(Inst::ORI { rd, rs1, imm }),
                 0b111 => Ok(Inst::ANDI { rd, rs1, imm }),
+
+                // Shift
+                0b001 => {
+                    let shamt = (imm & 0b11_111) as u8;
+                    Ok(Inst::SLLI { rd, rs1, shamt })
+                }
+                0b101 => {
+                    let shamt = (imm & 0b11_111) as u8;
+                    match imm >> 5 {
+                        0 => Ok(Inst::SRLI { rd, rs1, shamt }),
+                        0b0100000 => Ok(Inst::SRAI { rd, rs1, shamt }),
+                        _ => Err(Error::UnknownInst),
+                    }
+                }
+
                 _ => Err(Error::UnknownInst),
             }
         }
