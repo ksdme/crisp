@@ -37,22 +37,7 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             Ok(Inst::JAL { rd, imm })
         }
 
-        // R instructions.
-        0b0_110_011 => {
-            let rd = select(inst, 7, 5) as u8;
-            let f3 = select(inst, 12, 3) as u8;
-            let rs1 = select(inst, 15, 5) as u8;
-            let rs2 = select(inst, 20, 5) as u8;
-            let f7 = select(inst, 25, 7) as u8;
-
-            match (f3, f7) {
-                (0, 0) => Ok(Inst::ADD { rd, rs1, rs2 }),
-                (0, 0b100_000) => Ok(Inst::SUB { rd, rs1, rs2 }),
-                _ => Err(Error::UnknownInst),
-            }
-        }
-
-        // I instructions.
+        // I - Jump instructions.
         0b1_100_111 => {
             let (rd, f3, rs1, imm) = unpack_i(inst);
 
@@ -83,12 +68,40 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
             }
         }
 
+        // I - Load instructions.
+        0b0_000_011 => {
+            let (rd, f3, rs1, imm) = unpack_i(inst);
+
+            match f3 {
+                0 => Ok(Inst::LB { rs1, rd, imm }),
+                1 => Ok(Inst::LH { rs1, rd, imm }),
+                0b010 => Ok(Inst::LW { rs1, rd, imm }),
+                0b100 => Ok(Inst::LBU { rs1, rd, imm }),
+                0b101 => Ok(Inst::LHU { rs1, rd, imm }),
+                _ => Err(Error::UnknownInst),
+            }
+        }
+
+        // R instructions.
+        0b0_110_011 => {
+            let rd = select(inst, 7, 5) as u8;
+            let f3 = select(inst, 12, 3) as u8;
+            let rs1 = select(inst, 15, 5) as u8;
+            let rs2 = select(inst, 20, 5) as u8;
+            let f7 = select(inst, 25, 7) as u8;
+
+            match (f3, f7) {
+                (0, 0) => Ok(Inst::ADD { rd, rs1, rs2 }),
+                (0, 0b100_000) => Ok(Inst::SUB { rd, rs1, rs2 }),
+                _ => Err(Error::UnknownInst),
+            }
+        }
+
         0b0_010_011 => {
             let (rd, f3, rs1, imm) = unpack_i(inst);
 
             match f3 {
                 0 => Ok(Inst::ADDI { rd, rs1, imm }),
-                0b010 => Ok(Inst::LW { rd, rs1, imm }),
                 _ => Err(Error::UnknownInst),
             }
         }

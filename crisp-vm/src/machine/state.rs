@@ -69,17 +69,33 @@ impl<const M: usize> State<M> {
         }
     }
 
+    // TODO: Check for bounds.
+    pub fn get_mem_u8(&self, addr: u32) -> Result<u8, Error> {
+        Ok(self.memory[addr as usize])
+    }
+
+    // Get a 2 byte value from memory starting from the base address assuming
+    // little endian-ness.
+    // TODO: Check for alignment.
+    // TODO: Check for bounds.
+    pub fn get_mem_u16(&self, base_addr: u32) -> Result<u16, Error> {
+        Ok(u16::from_le_bytes([
+            self.get_mem_u8(base_addr)?,
+            self.get_mem_u8(base_addr + 1)?,
+        ]))
+    }
+
     // Get a 4 byte value from memory starting from the base address assuming
     // little endian-ness.
     // TODO: Check for alignment.
     // TODO: Check for bounds.
     pub fn get_mem_u32(&self, base_addr: u32) -> Result<u32, Error> {
-        let addr = base_addr as usize;
-        let cast: Result<[u8; 4], _> = self.memory[addr..addr + 4].try_into();
-        match cast {
-            Ok(byts) => Ok(u32::from_le_bytes(byts)),
-            Err(_) => Err(Error::InvalidMemoryAccess),
-        }
+        Ok(u32::from_le_bytes([
+            self.get_mem_u8(base_addr)?,
+            self.get_mem_u8(base_addr + 1)?,
+            self.get_mem_u8(base_addr + 2)?,
+            self.get_mem_u8(base_addr + 3)?,
+        ]))
     }
 
     // Set a 4 byte value in memory starting at the base address with little
