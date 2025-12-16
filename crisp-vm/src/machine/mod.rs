@@ -1,4 +1,4 @@
-mod instructions;
+pub mod instructions;
 mod machine;
 pub mod state;
 
