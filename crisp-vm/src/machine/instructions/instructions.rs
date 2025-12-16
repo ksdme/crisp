@@ -138,6 +138,39 @@ pub enum Inst {
     // R - Subtract
     // Subtract rs2 from register rs1, and store the result in register rd.
     SUB { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - Shift Left Logic
+    // Shit the value in rs1 to left by *rs2.
+    SLL { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - Shift Right Logic
+    // Shift the value in rs1 right by rs2 bits.
+    SRL { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - Shift Right Arithmetic
+    // Shift the value in rs1 right by rs2 bits using the original sign bit for filling
+    // the vacancies.
+    SRA { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - Set Less Than
+    // Set 1 in rd if *rs1 < *rs2 during signed comparison else set 0.
+    SLT { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - Set Less Than Unsigned
+    // Set 1 in rd if *rs1 < *rs2 during unsigned comparison else set 0.
+    SLTU { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - XOR
+    // Stores the result of XORing *rs1 and *rs2 result in rd.
+    XOR { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - OR
+    // Store the value of *rs1 | *rs2 in rd.
+    OR { rd: u8, rs1: u8, rs2: u8 },
+
+    // R - AND
+    // Store the value of *rs1 & *rs2 in rd.
+    AND { rd: u8, rs1: u8, rs2: u8 },
 }
 
 #[derive(Debug, Error)]
@@ -277,7 +310,7 @@ impl Inst {
                 Ok(None)
             }
 
-            // Logical and arithematic operations
+            // Immediate Logical and arithematics.
             Inst::ADDI { rd, rs1, imm } => {
                 let val = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_r(rd, val)?;
@@ -336,29 +369,83 @@ impl Inst {
             }
 
             Inst::SRAI { rd, rs1, shamt } => {
-                let a = state.get_r(rs1)?;
-
-                // TODO: I bet this can be optimized more.
-                // If the number is negative, we need to shift 1s into the shifted cells
-                // instead of 0s.
-                let val = if ((a >> 31) == 1) && (shamt > 0) {
-                    (a >> shamt) | (u32::MAX << (32 - (shamt % 32)))
-                } else {
-                    a >> shamt
-                };
+                let val = right_shift_arithmetic(state.get_r(rs1)?, shamt as u32);
                 state.set_r(rd, val)?;
 
                 Ok(None)
             }
 
+            // Register logical and arithematics.
             Inst::ADD { rd, rs1, rs2 } => {
-                state.set_r(rd, add!(state.get_r(rs1)?, state.get_r(rs2)?))?;
+                let val = add!(state.get_r(rs1)?, state.get_r(rs2)?);
+                state.set_r(rd, val)?;
 
                 Ok(None)
             }
 
             Inst::SUB { rd, rs1, rs2 } => {
-                todo!();
+                // Two's complement rs2 and add it to rs1.
+                let b = !state.get_r(rs2)? + 1;
+                let val = add!(state.get_r(rs1)?, b);
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::SLT { rd, rs1, rs2 } => {
+                let lt = signed_cmp_lt(state.get_r(rs1)?, state.get_r(rs2)?);
+                state.set_r(rd, if lt { 1 } else { 0 })?;
+
+                Ok(None)
+            }
+
+            Inst::SLTU { rd, rs1, rs2 } => {
+                let lt = state.get_r(rs1)? < state.get_r(rs2)?;
+                state.set_r(rd, if lt { 1 } else { 0 })?;
+
+                Ok(None)
+            }
+
+            Inst::SLL { rd, rs1, rs2 } => {
+                let val = state.get_r(rs1)? << state.get_r(rs2)?;
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::SRL { rd, rs1, rs2 } => {
+                let val = state.get_r(rs1)? >> state.get_r(rs2)?;
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::SRA { rd, rs1, rs2 } => {
+                let val = right_shift_arithmetic(state.get_r(rs1)?, state.get_r(rs2)?);
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::XOR { rd, rs1, rs2 } => {
+                let val = state.get_r(rs1)? ^ state.get_r(rs2)?;
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::OR { rd, rs1, rs2 } => {
+                let val = state.get_r(rs1)? | state.get_r(rs2)?;
+                state.set_r(rd, val)?;
+
+                Ok(None)
+            }
+
+            Inst::AND { rd, rs1, rs2 } => {
+                let val = state.get_r(rs1)? & state.get_r(rs2)?;
+                state.set_r(rd, val)?;
+
+                Ok(None)
             }
         }
     }
@@ -402,5 +489,16 @@ fn signed_cmp_gt(a: u32, b: u32) -> bool {
         !(a < b)
     } else {
         (a >> 31) == 0
+    }
+}
+
+// TODO: I bet this can be optimized more.
+// Right shift the value while moving in sign bit of the original value instead.
+#[inline]
+fn right_shift_arithmetic(val: u32, amount: u32) -> u32 {
+    if ((val >> 31) == 1) && (amount > 0) {
+        (val >> amount) | (u32::MAX << (32 - (amount % 32)))
+    } else {
+        val >> amount
     }
 }

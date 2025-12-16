@@ -138,7 +138,15 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
 
             match (f3, f7) {
                 (0, 0) => Ok(Inst::ADD { rd, rs1, rs2 }),
-                (0, 0b100_000) => Ok(Inst::SUB { rd, rs1, rs2 }),
+                (0, 0b0_100_000) => Ok(Inst::SUB { rd, rs1, rs2 }),
+                (1, 0) => Ok(Inst::SLL { rd, rs1, rs2 }),
+                (0b010, 0) => Ok(Inst::SLT { rd, rs1, rs2 }),
+                (0b011, 0) => Ok(Inst::SLTU { rd, rs1, rs2 }),
+                (0b100, 0) => Ok(Inst::XOR { rd, rs1, rs2 }),
+                (0b101, 0) => Ok(Inst::SRL { rd, rs1, rs2 }),
+                (0b101, 0b0_100_000) => Ok(Inst::SRA { rd, rs1, rs2 }),
+                (0b110, 0) => Ok(Inst::OR { rd, rs1, rs2 }),
+                (0b111, 0) => Ok(Inst::AND { rd, rs1, rs2 }),
                 _ => Err(Error::UnknownInst),
             }
         }
