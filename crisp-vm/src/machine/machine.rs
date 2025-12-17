@@ -33,7 +33,7 @@ impl<const M: usize> Machine<M> {
 
     pub fn log_r(&self) {
         for i in 0..31 {
-            log::debug!(
+            log::info!(
                 target: "state",
                 "x{:02} {:x}",
                 i + 1,
