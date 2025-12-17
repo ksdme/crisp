@@ -10,6 +10,7 @@ pub enum Error {
 
 // TODO: Both 0 and u32::MAX are illegal instructions.
 pub fn decode(inst: u32) -> Result<Inst, Error> {
+    log::debug!(target: "pip", "decoding val:{:x}", inst);
     match inst & 0b1_111_111 {
         // U instuctions.
         0b0_110_111 => {
@@ -154,7 +155,6 @@ pub fn decode(inst: u32) -> Result<Inst, Error> {
         0b1_110_011 => {
             let f3 = select(inst, 12, 3);
             let f12 = select(inst, 20, 12) as u16;
-            println!("PL {:b} {:b} {:b}", f3, f12, inst);
 
             match (f3, f12) {
                 (0, 0) | (0, 1) => Ok(Inst::ECALL),
