@@ -226,7 +226,7 @@ impl Inst {
         match self {
             // Upper immediates.
             Inst::LUI { rd, imm } => {
-                log::debug!(target: "ex", "lui rd:{:x} imm:{:x}", rd, imm);
+                log::debug!(target: "exec", "lui rd:{:x} imm:{:x}", rd, imm);
 
                 state.set_r(rd, imm)?;
 
@@ -234,7 +234,7 @@ impl Inst {
             }
 
             Inst::AUIPC { rd, imm } => {
-                log::debug!(target: "ex", "auipc rd:{:x} imm:{:x}", rd, imm);
+                log::debug!(target: "exec", "auipc rd:{:x} imm:{:x}", rd, imm);
 
                 let val = add!(state.get_pc(), imm);
                 state.set_r(rd, val)?;
@@ -245,7 +245,7 @@ impl Inst {
             // Jumps.
             // TODO: Check for alignment and throw exception.
             Inst::JAL { rd, imm } => {
-                log::debug!(target: "ex", "jal rd:{:x} imm:{:x}", rd, imm);
+                log::debug!(target: "exec", "jal rd:{:x} imm:{:x}", rd, imm);
 
                 let current_pc = state.get_pc();
                 state.set_r(rd, current_pc + 4)?;
@@ -256,7 +256,7 @@ impl Inst {
 
             // TODO: Check for alignment and throw exception even though we assume it.
             Inst::JALR { rd, rs1, imm } => {
-                log::debug!(target: "ex", "jalr rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "jalr rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 let addr = addr >> 1 << 1;
@@ -269,38 +269,38 @@ impl Inst {
 
             // Branches.
             Inst::BEQ { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "beq rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "beq rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
                 branch(state, rs1, rs2, imm, |a, b| a == b)
             }
 
             Inst::BNE { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "bne rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "bne rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
                 branch(state, rs1, rs2, imm, |a, b| a != b)
             }
 
             Inst::BLT { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "blt rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "blt rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
                 branch(state, rs1, rs2, imm, |a, b| signed_cmp_lt(a, b))
             }
 
             Inst::BLTU { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "bltu rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "bltu rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
                 branch(state, rs1, rs2, imm, |a, b| a < b)
             }
 
             Inst::BGE { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "bge rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "bge rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
                 branch(state, rs1, rs2, imm, |a, b| signed_cmp_gt(a, b))
             }
 
             Inst::BGEU { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "bgeu rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "bgeu rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
                 branch(state, rs1, rs2, imm, |a, b| !(a < b))
             }
 
             // Loads
             Inst::LB { rs1, rd, imm } => {
-                log::debug!(target: "ex", "lb rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "lb rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 let val = state.get_mem_u8(addr)?;
@@ -310,7 +310,7 @@ impl Inst {
             }
 
             Inst::LH { rs1, rd, imm } => {
-                log::debug!(target: "ex", "lh rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "lh rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let base_addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 let val = state.get_mem_u16(base_addr)?;
@@ -320,7 +320,7 @@ impl Inst {
             }
 
             Inst::LW { rd, rs1, imm } => {
-                log::debug!(target: "ex", "lw rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "lw rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let base_addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 let val = state.get_mem_u32(base_addr)?;
@@ -330,7 +330,7 @@ impl Inst {
             }
 
             Inst::LBU { rd, rs1, imm } => {
-                log::debug!(target: "ex", "lbu rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "lbu rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_r(rd, state.get_mem_u8(addr)? as u32)?;
@@ -339,7 +339,7 @@ impl Inst {
             }
 
             Inst::LHU { rd, rs1, imm } => {
-                log::debug!(target: "ex", "lhu rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "lhu rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let base_addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_r(rd, state.get_mem_u16(base_addr)? as u32)?;
@@ -349,7 +349,7 @@ impl Inst {
 
             // Stores
             Inst::SB { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "sb rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "sb rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
 
                 let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_mem_u8(addr, state.get_r(rs2)? as u8)?;
@@ -358,7 +358,7 @@ impl Inst {
             }
 
             Inst::SH { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "sh rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "sh rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
 
                 let base_addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_mem_u16(base_addr, state.get_r(rs2)? as u16)?;
@@ -367,7 +367,7 @@ impl Inst {
             }
 
             Inst::SW { rs1, rs2, imm } => {
-                log::debug!(target: "ex", "sw rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
+                log::debug!(target: "exec", "sw rs1:{:x} rs2:{:x} imm:{:x}", rs1, rs2, imm);
 
                 let base_addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_mem_u32(base_addr, state.get_r(rs2)?)?;
@@ -377,7 +377,7 @@ impl Inst {
 
             // Immediate Logical and arithematics.
             Inst::ADDI { rd, rs1, imm } => {
-                log::debug!(target: "ex", "addi rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "addi rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let val = add!(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_r(rd, val)?;
@@ -386,7 +386,7 @@ impl Inst {
             }
 
             Inst::SLTI { rd, rs1, imm } => {
-                log::debug!(target: "ex", "slti rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "slti rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let lt = signed_cmp_lt(state.get_r(rs1)?, sign_extend!(12, imm));
                 state.set_r(rd, if lt { 1 } else { 0 })?;
@@ -395,7 +395,7 @@ impl Inst {
             }
 
             Inst::SLTIU { rd, rs1, imm } => {
-                log::debug!(target: "ex", "sltiu rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "sltiu rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let lt = state.get_r(rs1)? < sign_extend!(12, imm);
                 state.set_r(rd, if lt { 1 } else { 0 })?;
@@ -404,7 +404,7 @@ impl Inst {
             }
 
             Inst::XORI { rd, rs1, imm } => {
-                log::debug!(target: "ex", "xori rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "xori rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let val = state.get_r(rs1)? ^ sign_extend!(12, imm);
                 state.set_r(rd, val)?;
@@ -413,7 +413,7 @@ impl Inst {
             }
 
             Inst::ORI { rd, rs1, imm } => {
-                log::debug!(target: "ex", "ori rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "ori rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let val = state.get_r(rs1)? | sign_extend!(12, imm);
                 state.set_r(rd, val)?;
@@ -422,7 +422,7 @@ impl Inst {
             }
 
             Inst::ANDI { rd, rs1, imm } => {
-                log::debug!(target: "ex", "andi rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
+                log::debug!(target: "exec", "andi rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
                 let val = state.get_r(rs1)? & sign_extend!(12, imm);
                 state.set_r(rd, val)?;
@@ -432,7 +432,7 @@ impl Inst {
 
             // Shifts
             Inst::SLLI { rd, rs1, shamt } => {
-                log::debug!(target: "ex", "slli rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
+                log::debug!(target: "exec", "slli rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
 
                 let val = shl!(state.get_r(rs1)?, shamt as u32);
                 state.set_r(rd, val)?;
@@ -441,7 +441,7 @@ impl Inst {
             }
 
             Inst::SRLI { rd, rs1, shamt } => {
-                log::debug!(target: "ex", "srli rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
+                log::debug!(target: "exec", "srli rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
 
                 let val = shr!(state.get_r(rs1)?, shamt as u32);
                 state.set_r(rd, val)?;
@@ -450,7 +450,7 @@ impl Inst {
             }
 
             Inst::SRAI { rd, rs1, shamt } => {
-                log::debug!(target: "ex", "srai rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
+                log::debug!(target: "exec", "srai rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
 
                 let val = right_shift_arithmetic(state.get_r(rs1)?, shamt as u32);
                 state.set_r(rd, val)?;
@@ -460,7 +460,7 @@ impl Inst {
 
             // Register logical and arithematics.
             Inst::ADD { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "add rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "add rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let val = add!(state.get_r(rs1)?, state.get_r(rs2)?);
                 state.set_r(rd, val)?;
@@ -469,7 +469,7 @@ impl Inst {
             }
 
             Inst::SUB { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "sub rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "sub rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 // Two's complement rs2 and add it to rs1.
                 let b = add!(!state.get_r(rs2)?, 1);
@@ -480,7 +480,7 @@ impl Inst {
             }
 
             Inst::SLT { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "slt rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "slt rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let lt = signed_cmp_lt(state.get_r(rs1)?, state.get_r(rs2)?);
                 state.set_r(rd, if lt { 1 } else { 0 })?;
@@ -489,7 +489,7 @@ impl Inst {
             }
 
             Inst::SLTU { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "sltu rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "sltu rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let lt = state.get_r(rs1)? < state.get_r(rs2)?;
                 state.set_r(rd, if lt { 1 } else { 0 })?;
@@ -498,7 +498,7 @@ impl Inst {
             }
 
             Inst::SLL { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "sll rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "sll rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let val = shl!(state.get_r(rs1)?, state.get_r(rs2)?);
                 state.set_r(rd, val)?;
@@ -507,7 +507,7 @@ impl Inst {
             }
 
             Inst::SRL { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "srl rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "srl rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let val = shr!(state.get_r(rs1)?, state.get_r(rs2)?);
                 state.set_r(rd, val)?;
@@ -516,7 +516,7 @@ impl Inst {
             }
 
             Inst::SRA { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "sra rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "sra rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let val = right_shift_arithmetic(state.get_r(rs1)?, state.get_r(rs2)?);
                 state.set_r(rd, val)?;
@@ -525,7 +525,7 @@ impl Inst {
             }
 
             Inst::XOR { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "xor rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "xor rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let val = state.get_r(rs1)? ^ state.get_r(rs2)?;
                 state.set_r(rd, val)?;
@@ -534,7 +534,7 @@ impl Inst {
             }
 
             Inst::OR { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "or rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "or rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let val = state.get_r(rs1)? | state.get_r(rs2)?;
                 state.set_r(rd, val)?;
@@ -543,7 +543,7 @@ impl Inst {
             }
 
             Inst::AND { rd, rs1, rs2 } => {
-                log::debug!(target: "ex", "and rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
+                log::debug!(target: "exec", "and rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 let val = state.get_r(rs1)? & state.get_r(rs2)?;
                 state.set_r(rd, val)?;
@@ -553,13 +553,13 @@ impl Inst {
 
             // Indicate that we want to suspend execution in some manner here.
             Inst::ECALL => {
-                log::debug!(target: "ex", "ecall");
+                log::debug!(target: "exec", "ecall");
                 Err(InstError::Suspend)
             }
 
             // Fence, FenceI & CSR
             Inst::IGNORE => {
-                log::debug!(target: "ex", "ignore");
+                log::debug!(target: "exec", "ignore");
                 Ok(None)
             }
         }

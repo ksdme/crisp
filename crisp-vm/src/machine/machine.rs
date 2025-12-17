@@ -34,7 +34,7 @@ impl<const M: usize> Machine<M> {
     pub fn log_r(&self) {
         for i in 0..31 {
             log::info!(
-                target: "state",
+                target: "stat",
                 "x{:02} {:x}",
                 i + 1,
                 self.state.get_r(i + 1).expect("could not fetch value"),
@@ -44,7 +44,12 @@ impl<const M: usize> Machine<M> {
 
     pub fn run(&mut self) -> Result<(), Error> {
         log::debug!(target: "loop", "running machine",);
+
+        let mut cycles = 0;
         loop {
+            cycles += 1;
+            log::debug!(target: "loop", "--------- {} ---------", cycles);
+
             let pc = self.state.get_pc();
 
             log::debug!(target: "loop", "fetch_decode pc:{:x}", pc);
