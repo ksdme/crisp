@@ -18,7 +18,7 @@ mod tests {
     use crate::machine::{Error, Machine, instructions, state::State};
 
     fn run_riscv_test(bytes: &[u8]) {
-        let state = State::<10_000>::from(bytes);
+        let state = State::<16_000>::from(bytes);
         let mut machine = Machine::new(state);
 
         assert!(matches!(

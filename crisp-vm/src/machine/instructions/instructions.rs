@@ -207,6 +207,18 @@ macro_rules! add {
     };
 }
 
+macro_rules! shl {
+    ($a:expr, $b:expr) => {
+        $a.wrapping_shl($b)
+    };
+}
+
+macro_rules! shr {
+    ($a:expr, $b:expr) => {
+        $a.wrapping_shr($b)
+    };
+}
+
 impl Inst {
     // Executes the instruction on the state and returns a Result with the updated value of
     // PC. If None was passed, it is expected that the machine increments to the next instruction.
@@ -246,11 +258,12 @@ impl Inst {
             Inst::JALR { rd, rs1, imm } => {
                 log::debug!(target: "ex", "jalr rd:{:x} rs1:{:x} imm:{:x}", rd, rs1, imm);
 
+                let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
+                let addr = addr >> 1 << 1;
+
                 let current_pc = state.get_pc();
                 state.set_r(rd, current_pc + 4)?;
 
-                let addr = add!(state.get_r(rs1)?, sign_extend!(12, imm));
-                let addr = addr >> 1 << 1;
                 Ok(Some(addr))
             }
 
@@ -421,7 +434,7 @@ impl Inst {
             Inst::SLLI { rd, rs1, shamt } => {
                 log::debug!(target: "ex", "slli rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
 
-                let val = state.get_r(rs1)? << shamt;
+                let val = shl!(state.get_r(rs1)?, shamt as u32);
                 state.set_r(rd, val)?;
 
                 Ok(None)
@@ -430,7 +443,7 @@ impl Inst {
             Inst::SRLI { rd, rs1, shamt } => {
                 log::debug!(target: "ex", "srli rd:{:x} rs1:{:x} shamt:{:x}", rd, rs1, shamt);
 
-                let val = state.get_r(rs1)? >> shamt;
+                let val = shr!(state.get_r(rs1)?, shamt as u32);
                 state.set_r(rd, val)?;
 
                 Ok(None)
@@ -459,7 +472,7 @@ impl Inst {
                 log::debug!(target: "ex", "sub rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
                 // Two's complement rs2 and add it to rs1.
-                let b = !state.get_r(rs2)? + 1;
+                let b = add!(!state.get_r(rs2)?, 1);
                 let val = add!(state.get_r(rs1)?, b);
                 state.set_r(rd, val)?;
 
@@ -487,7 +500,7 @@ impl Inst {
             Inst::SLL { rd, rs1, rs2 } => {
                 log::debug!(target: "ex", "sll rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
-                let val = state.get_r(rs1)? << state.get_r(rs2)?;
+                let val = shl!(state.get_r(rs1)?, state.get_r(rs2)?);
                 state.set_r(rd, val)?;
 
                 Ok(None)
@@ -496,7 +509,7 @@ impl Inst {
             Inst::SRL { rd, rs1, rs2 } => {
                 log::debug!(target: "ex", "srl rd:{:x} rs1:{:x} rs2:{:x}", rd, rs1, rs2);
 
-                let val = state.get_r(rs1)? >> state.get_r(rs2)?;
+                let val = shr!(state.get_r(rs1)?, state.get_r(rs2)?);
                 state.set_r(rd, val)?;
 
                 Ok(None)
@@ -598,8 +611,10 @@ fn signed_cmp_gt(a: u32, b: u32) -> bool {
 // Right shift the value while moving in sign bit of the original value instead.
 #[inline]
 fn right_shift_arithmetic(val: u32, amount: u32) -> u32 {
+    let amount = amount % 32;
+
     if ((val >> 31) == 1) && (amount > 0) {
-        (val >> amount) | (u32::MAX << (32 - (amount % 32)))
+        (val >> amount) | (u32::MAX << (32 - amount))
     } else {
         val >> amount
     }
