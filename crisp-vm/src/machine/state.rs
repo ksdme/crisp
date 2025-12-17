@@ -36,8 +36,8 @@ impl<const M: usize> Default for State<M> {
     }
 }
 
-impl<const M: usize, const N: usize> From<&[u8; N]> for State<M> {
-    fn from(val: &[u8; N]) -> Self {
+impl<const M: usize> From<&[u8]> for State<M> {
+    fn from(val: &[u8]) -> Self {
         // TODO: Check for bounds.
         let mut state = State::default();
         state.memory[0..val.len()].copy_from_slice(val);

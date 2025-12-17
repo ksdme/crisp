@@ -1,20 +1,23 @@
-use crate::machine::{instructions, state::State};
+use crate::machine::state::State;
 
 mod machine;
 
 fn main() {
     env_logger::init();
 
-    let state = State::<1_048_576>::from(include_bytes!("../blobs/rv32ui-p-add.bin"));
+    let state = State::<1_048_576>::default();
     let mut machine = machine::Machine::new(state);
     machine.run().expect("could not run machine");
 }
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+    use std::path::PathBuf;
+
     use crate::machine::{Error, Machine, instructions, state::State};
 
-    fn run_riscv_test<const B: usize>(bytes: &[u8; B]) {
+    fn run_riscv_test(bytes: &[u8]) {
         let state = State::<10_000>::from(bytes);
         let mut machine = Machine::new(state);
 
@@ -27,8 +30,9 @@ mod tests {
         assert_eq!(machine.state.get_r(17).expect("could not a7"), 93);
     }
 
-    #[test]
-    fn test_add() {
-        run_riscv_test(include_bytes!("../blobs/rv32ui-p-add.bin"));
+    #[rstest]
+    fn test_riscv_tests_test(#[files("tests/**/*.bin")] path: PathBuf) {
+        let bin = std::fs::read(path).expect("could not read bin");
+        run_riscv_test(bin.as_slice());
     }
 }
