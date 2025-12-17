@@ -1,0 +1,7 @@
+version: 3
+
+tasks:
+  test:
+    dir: crisp-vm
+    cmds:
+      - cargo test
