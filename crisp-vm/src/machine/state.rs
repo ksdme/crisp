@@ -36,6 +36,15 @@ impl<const M: usize> Default for State<M> {
     }
 }
 
+impl<const M: usize, const N: usize> From<&[u8; N]> for State<M> {
+    fn from(val: &[u8; N]) -> Self {
+        // TODO: Check for bounds.
+        let mut state = State::default();
+        state.memory[0..val.len()].copy_from_slice(val);
+        state
+    }
+}
+
 impl<const M: usize> State<M> {
     // Get the program counter.
     pub fn get_pc(&self) -> u32 {
@@ -53,17 +62,17 @@ impl<const M: usize> State<M> {
         match name {
             0 => Ok(0),
             name if name > 31 => Err(Error::InvalidRegister),
-            name => Ok(self.registers[name as usize]),
+            name => Ok(self.registers[name as usize - 1]),
         }
     }
 
     // Set the value on a general register.
     pub fn set_r(&mut self, name: u8, value: u32) -> Result<(), Error> {
         match name {
-            0 => Err(Error::IllegalOperation),
+            0 => Ok(()),
             name if name > 31 => Err(Error::InvalidRegister),
             name => {
-                self.registers[name as usize] = value;
+                self.registers[name as usize - 1] = value;
                 Ok(())
             }
         }

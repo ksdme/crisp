@@ -171,12 +171,22 @@ pub enum Inst {
     // R - AND
     // Store the value of *rs1 & *rs2 in rd.
     AND { rd: u8, rs1: u8, rs2: u8 },
+
+    // I - ECALL
+    // Trigger a trap into the runtime.
+    ECALL,
+
+    // All the CSRR* instructions.
+    IGNORE,
 }
 
 #[derive(Debug, Error)]
 pub enum InstError {
     #[error(transparent)]
     State(#[from] state::Error),
+
+    #[error("suspend")]
+    Suspend,
 }
 
 // Sign extends a number to be a negative value with a different bit size if the original
@@ -447,6 +457,12 @@ impl Inst {
 
                 Ok(None)
             }
+
+            // Indicate that we want to suspend execution in some manner here.
+            Inst::ECALL => Err(InstError::Suspend),
+
+            // Fence, FenceI & CSR
+            Inst::IGNORE => Ok(None),
         }
     }
 }
